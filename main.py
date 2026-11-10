@@ -15,7 +15,7 @@ WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 
 app = FastAPI(title="Voice Restaurant API")
 
-
+DB_NAME = "orders.db"
 initialize_database()
 
 
