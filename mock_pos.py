@@ -11,6 +11,7 @@ load_dotenv()  # Load environment variables from .env file
 # Temporary in-memory storage for menu items and orders
 pos_orders = {}
 WEBHOOK_SECRET = os.getenv("POS_WEBHOOK_SECRET")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 
 
 @app.post("/pos/orders", status_code=201)
@@ -85,7 +86,7 @@ def update_pos_status(order_id: int, update: POSStatusUpdate):
     # Notify the restaurant backend
     try:
         response = httpx.post(
-            "http://127.0.0.1:8000/webhooks/pos",
+            "{BACKEND_URL}/webhooks/pos",
             json={"order_id": order_id, "status": update.status},
             headers={"X-Webhook-Secret": WEBHOOK_SECRET},
             timeout=5.0,

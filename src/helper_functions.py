@@ -4,14 +4,12 @@ import httpx
 from fastapi import HTTPException
 
 
-def send_to_pos(payload):
+def send_to_pos(payload, pos_url):
     max_attempts = 3
 
     for attempt in range(max_attempts):
         try:
-            response = httpx.post(
-                "http://127.0.0.1:8001/pos/orders", json=payload, timeout=3.0
-            )
+            response = httpx.post("{pos_url}/pos/orders", json=payload, timeout=3.0)
 
             response.raise_for_status()
             return response.json()

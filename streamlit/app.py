@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import math
+import os
 import statistics
 import sys
 import time
@@ -9,9 +10,11 @@ from pathlib import Path
 from uuid import uuid4
 
 import httpx
+from dotenv import load_dotenv
 
 import streamlit as st
 
+load_dotenv()
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from ai import get_menu, understand_order, validate_order
@@ -56,7 +59,7 @@ st.title("DineAssist AI")
 st.write("Intelligent Voice Ordering System for Restaurants")
 
 
-BACKEND_URL = "http://127.0.0.1:8000"
+BACKEND_URL = os.getenv("BACKEND_URL")
 
 # Clear all the session state variables if the app is reloaded
 if "cart" not in st.session_state:

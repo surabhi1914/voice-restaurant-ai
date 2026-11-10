@@ -15,7 +15,8 @@ WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 
 app = FastAPI(title="Voice Restaurant API")
 
-DB_NAME = "orders.db"
+DB_NAME = os.getenv("DB_NAME", "restaurant.db")
+POS_URL = os.getenv("POS_URL", "http://127.0.0.1:8001")
 initialize_database()
 
 
@@ -282,7 +283,7 @@ def sync_order_to_pos(order_id: int):
         "total_cents": order["total_cents"],
     }
 
-    pos_result = send_to_pos(payload)
+    pos_result = send_to_pos(payload, POS_URL)
 
     # Save successful synchronization
     with db_connection() as conn:

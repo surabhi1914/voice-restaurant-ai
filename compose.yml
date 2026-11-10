@@ -1,0 +1,41 @@
+
+services:
+  backend:
+    build: .
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DB_NAME: /data/restaurant.db
+      POS_URL: http://pos:8001
+    volumes:
+      - restaurant_data:/data
+
+  pos:
+    build: .
+    command: uvicorn mock_pos:app --host 0.0.0.0 --port 8001
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+
+  streamlit:
+    build: .
+    command: streamlit run streamlit/app.py --server.address 0.0.0.0 --server.port 8501
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+
+volumes:
+  restaurant_data:
