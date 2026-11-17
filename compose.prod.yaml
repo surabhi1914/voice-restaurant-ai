@@ -1,0 +1,14 @@
+
+services:
+  backend:
+    ports: !reset []
+    restart: unless-stopped
+
+  pos:
+    ports: !reset []
+    restart: unless-stopped
+
+  streamlit:
+    ports: !override
+      - "127.0.0.1:8501:8501"
+    restart: unless-stopped

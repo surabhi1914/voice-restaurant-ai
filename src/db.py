@@ -1,7 +1,8 @@
+import os
 import sqlite3
 from contextlib import contextmanager
 
-DB_NAME = "restaurant.db"
+DB_NAME = os.getenv("DB_NAME", "restaurant.db")
 
 INITIAL_MENU = [
     (1, "Chicken Burger", 900, 50),

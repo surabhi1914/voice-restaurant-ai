@@ -13,6 +13,7 @@ import httpx
 from dotenv import load_dotenv
 
 import streamlit as st
+from src.groq_handler import call_groq
 
 load_dotenv()
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -108,7 +109,11 @@ if audio is not None:
             try:
                 # Transcribe the audio using OpenAI's Whisper model
                 start = time.perf_counter()
-                transcription = transcribe(audio)
+                transcription = call_groq(
+                    lambda: transcribe(audio),
+                    feature="Speech Transcription",
+                    log_event=log_event,
+                )
                 st.session_state["transcription_latency"] = time.perf_counter() - start
                 st.session_state["transcription"] = transcription.text
                 log_event(
@@ -139,11 +144,17 @@ if "transcription" in st.session_state:
             try:
                 menu = get_menu()
                 start = time.perf_counter()
-                parsed = understand_order(
-                    st.session_state["transcription"],
-                    st.session_state["cart"],
-                    menu,
+
+                parsed = call_groq(
+                    lambda: understand_order(
+                        transcription,
+                        st.session_state["cart"],
+                        get_menu(),
+                    ),
+                    feature="Order understanding",
+                    log_event=log_event,
                 )
+
                 st.session_state["llm_latency"] = time.perf_counter() - start
                 log_event(
                     "llm_latency",
@@ -205,7 +216,12 @@ if "transcription" in st.session_state:
 
                             try:
                                 start = time.perf_counter()
-                                st.session_state["reply_audio"] = speak(reply)
+                                st.session_state["reply_audio"] = call_groq(
+                                    lambda: speak(reply),
+                                    feature="Speech generation",
+                                    optional=True,
+                                    log_event=log_event,
+                                )
                                 st.session_state["tts_latency"] = (
                                     time.perf_counter() - start
                                 )

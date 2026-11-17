@@ -9,7 +9,7 @@ def send_to_pos(payload, pos_url):
 
     for attempt in range(max_attempts):
         try:
-            response = httpx.post("{pos_url}/pos/orders", json=payload, timeout=3.0)
+            response = httpx.post(f"{pos_url}/pos/orders", json=payload, timeout=3.0)
 
             response.raise_for_status()
             return response.json()

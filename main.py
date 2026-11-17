@@ -1,6 +1,9 @@
+import asyncio
 import json
+import logging
 import os
 import secrets
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
@@ -13,7 +16,75 @@ from src.models.pos import POSWebhook
 load_dotenv()  # Load environment variables from .env file
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 
-app = FastAPI(title="Voice Restaurant API")
+
+logger = logging.getLogger("dineassist.recovery")
+
+
+async def recover_pending_orders():
+    logger.warning("POS recovery worker started")
+    while True:
+        try:
+            # Read pending orders from SQLite
+            with db_connection() as conn:
+                pending = conn.execute(
+                    """
+                    SELECT id FROM orders
+                    WHERE pos_sync_status = 'pending'
+                    ORDER BY id
+                    LIMIT 10
+                    """
+                ).fetchall()
+
+            for order in pending:
+                order_id = order["id"]
+
+                try:
+                    # Run blocking HTTP work off the event loop
+                    await asyncio.to_thread(sync_order_to_pos, order_id)
+
+                    logger.info("Recovered order %s", order_id)
+
+                except HTTPException as error:
+                    logger.warning(
+                        "Recovery failed for order %s: HTTP %s - %s",
+                        order_id,
+                        error.status_code,
+                        error.detail,
+                    )
+
+                except Exception:
+                    logger.exception(
+                        "Unexpected recovery failure for order %s", order_id
+                    )
+
+        except Exception:
+            logger.exception("Recovery worker error")
+
+        # Wait before checking again
+        await asyncio.sleep(30)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize the persistent database first
+    initialize_database()
+    add_pos_sync_column()
+
+    # Start automatic order recovery
+    worker = asyncio.create_task(recover_pending_orders())
+
+    try:
+        yield
+    finally:
+        worker.cancel()
+
+        try:
+            await worker
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(title="Voice Restaurant API", lifespan=lifespan)
 
 DB_NAME = os.getenv("DB_NAME", "restaurant.db")
 POS_URL = os.getenv("POS_URL", "http://127.0.0.1:8001")
@@ -35,6 +106,14 @@ def add_pos_sync_column():
 
 
 add_pos_sync_column()
+
+
+@app.get("/health")
+def health():
+    with db_connection() as conn:
+        conn.execute("SELECT 1").fetchone()
+
+    return {"status": "healthy", "service": "restaurant-backend"}
 
 
 @app.get("/menu")
